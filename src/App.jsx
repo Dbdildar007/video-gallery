@@ -80,6 +80,7 @@ export default function App() {
 
         setSplitProgress(`Processing batch ${batchIndex} (${Math.floor(currentStart / 60)}m to ${Math.floor(currentEnd / 60)}m)...`);
 
+        // Extract the 10-minute chunk safely
         await ffmpeg.exec([
           '-ss', currentStart.toString(),
           '-i', 'input.mp4',
@@ -88,8 +89,9 @@ export default function App() {
           'batch_temp.mp4'
         ]);
 
+        // FIX: Read from batch_temp.mp4, NOT input.mp4
         await ffmpeg.exec([
-          '-i', 'input.mp4',
+          '-i', 'batch_temp.mp4',
           '-c', 'copy',
           '-f', 'segment',
           '-segment_time', '30',
@@ -112,7 +114,7 @@ export default function App() {
 
           allGeneratedClips.push({ name: clipName, url: url });
 
-          // Free file memory from WebAssembly virtual filesystem instantly
+          // Free file memory instantly
           await ffmpeg.deleteFile(file.name);
         }
 
@@ -120,7 +122,6 @@ export default function App() {
         currentStart += batchSize;
         batchIndex++;
       }
-
       // Cleanup master input file from internal virtual store
       await ffmpeg.deleteFile('input.mp4');
 
